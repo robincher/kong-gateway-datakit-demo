@@ -1,0 +1,34 @@
+routes:
+- name: datakit-aggregate
+  service:
+    name: datakit-default
+  paths:
+  - /aggregate-facts
+  strip_path: true
+  filter_chains:
+    - filters:
+      - name: datakit
+        config:
+          debug: true
+          nodes:
+          - name: CAT_FACT
+            type: call
+            url:  https://catfact.ninja/fact
+          - name: CHUCK_NORRIS_FACT
+            type: call
+            url:  https://api.chucknorris.io/jokes/random
+          - name: JOIN
+            type: jq
+            inputs:
+            - cat: CAT_FACT.body
+            - chuck: CHUCK_NORRIS_FACT.body
+            jq: |
+              {
+                "cat_fact": $cat.fact,
+                "chuck_norris_fact": $chuck.value
+              }
+          - name: EXIT
+            type: exit
+            inputs:
+            - body: JOIN
+            status: 200

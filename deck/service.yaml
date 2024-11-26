@@ -1,0 +1,3 @@
+services:
+- url: https://httpbin.konghq.com/anything
+  name: datakit-default

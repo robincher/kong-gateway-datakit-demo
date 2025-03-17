@@ -1,0 +1,54 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+- name: request_callout
+  url: https://echo-api.3scale.net/
+  routes:
+  - name: request_callout
+    headers:
+      X-Route:
+      - callout
+    paths:
+    - /
+    plugins:
+    - name: request-callout
+      config:
+        upstream:
+          # by_lua: |- 
+          #   kong.service.request.set_raw_body(kong.ctx.shared.callouts.c1.response.body)
+          body:
+            forward: false  
+            custom:
+              username: "$(callouts.c1.response.body.name)"
+              homeworld: "$(callouts.c2.response.body.name)"
+        callouts:
+        - name: c1
+          request:
+            method: GET
+            url: https://swapi.dev/api/people/1
+            # by_lua: |- 
+            #   local body = kong.request.get_body() or {}; 
+            #   local id = body.userId; 
+            #   if id then 
+            #     kong.ctx.shared.callouts.c1.request.params.url = 'https://jsonplaceholder.typicode.com/comments?postId=' .. id 
+            #   end
+          response:
+            body:
+              decode: true
+        - name: c2
+          depends_on:
+          - c1
+          request:
+            method: GET
+            url: https://swapi.dev/api/planets
+            by_lua: |- 
+              local body = kong.ctx.shared.callouts.c1.response.body or {}; 
+              local homeworld = body.homeworld; 
+              if homeworld then 
+                kong.ctx.shared.callouts.c2.request.params.url = homeworld
+              end
+          response:
+            body:
+              decode: true
+
